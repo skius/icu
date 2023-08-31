@@ -8,6 +8,7 @@
  */
 package com.ibm.icu.dev.test.translit;
 
+import java.beans.Transient;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -223,6 +224,293 @@ public class TransliteratorTest extends TestFmwk {
                 "a>ERROR",
                 Transliterator.FORWARD);
         expect(t, "abcdefgABCDEFGU", "&bcd&fg!^**!^*&");
+    }
+
+    @Test
+    public void TestNiels() {
+        String rules = "$bracket = ']';\n [a-z $bracket > AAA ;";
+        String input = "a q xx";
+        String output = "AAA AAA AAAAAA";
+        
+        expect(rules, input, output);
+
+        rules = "$minus = '-';\n [a $minus z] > AAA ;";
+        input = "a q xx";
+        output = "AAA AAA AAAAAA";
+
+        expect(rules, input, output);
+
+        rules = "$minus = '-';\n a $minus z > AAA ;";
+        input = "a q xx a-z";
+        output = "a q xx AAA";
+
+        expect(rules, input, output);
+
+        rules = "$minus = '-';\n a $minus z > AAA ;";
+        input = "a q xx a-z";
+        output = "a q xx AAA";
+
+        expect(rules, input, output);
+
+        rules = ":: [{hello}] ; hello > hallo ;";
+        input = "hello";
+        output = "hello";
+
+        expect(rules, input, output);
+
+
+        // rules = "$a = $1 ; $a > MATCHED ;";
+        // input = "$1";
+        // output = "MATCHED";
+
+        // expect(rules, input, output);
+        
+        // check if custom rules can override existing transliterators
+        rules = ":: Remove ;";
+        Transliterator t = Transliterator.createFromRules("InterIndic-Arabic", rules, Transliterator.FORWARD);
+        Transliterator.registerInstance(t);
+        Transliterator myCustomDeAsciiTransliterator = Transliterator.getInstance("Bengali-Arabic");
+        input = "ৎ";
+        output = "";
+        expect(myCustomDeAsciiTransliterator, input, output);
+        // this passes, so yes! our interpretation was correct
+
+
+
+
+
+        // internal representation leaks
+        // rules = "$a = 'secret' ; \uF000 > 'Unrepresentable character, watch out' ;";
+        // input = "\uF000 is a secret character we use";
+        // output = "Unrepresentable character, watch out is a Unrepresentable character, watch out we use";
+
+        // expect(rules, input, output);
+        // "Variable range character in rule in &quot;\uF000 &gt; &apos;Unrepresentable character, watch out&apos; &quot;"
+
+        // rules = "$b = 'very long string yes its veryyyyy long' ; $allo = hallo $b $b $b ; german is $allo > matched ";
+        // input = "aaax x";
+        // output = "aaax x";
+
+        // expect(rules, input, output);
+        // My understanding is that variables are always inlined
+
+
+        // prefixa? gets turned into <error message="prefix" type="java.lang.IllegalArgumentException">
+        // in other words, a gets nested into the quantifier
+
+
+
+        // String mydef = "[-a$]";
+        String mydef = "[.]";
+        UnicodeSet set = new UnicodeSet(mydef);
+        String collect = "";
+        for (String s : set.toArray(set)) 
+        {
+            collect += s + ";";
+            //System.err.println(s);
+        }
+        System.err.println(collect);
+        throw new IllegalArgumentException(collect, null);
+        // mydef = "[x^b]";
+        // set = new UnicodeSet(mydef);
+        // for (String s : set.toArray(set)) 
+        // {
+        //     System.err.println(s);
+        // }
+        //assert 1 == 2;
+    }
+
+    void registerWithName(String name) {
+        String rules = "a > '" + name + "';";
+        Transliterator t = Transliterator.createFromRules(name, rules, Transliterator.FORWARD);
+        Transliterator.registerInstance(t);
+    }
+
+    /*
+     * 
+     * @Test
+    public void TestFallbackNiels() {
+        Transliterator.unregister(DESERET_DEE);
+        Transliterator.unregister("Arab-Latn");
+        Transliterator.unregister("Arabic-Latin");
+        Transliterator.unregister("Arab-Latin");
+        Transliterator.unregister("Latin-Arab");
+        Transliterator.unregister("Latin-Arabic");
+        Transliterator.unregister("");
+        Transliterator.unregister("");
+
+        registerWithName("Latin-az_Arabic_IR");
+        registerWithName("Latin-az_Arabic");
+        // registerWithName("Latin-az_IR");
+        registerWithName("Latin-az");
+        // registerWithName("Latin-Arabic");
+        registerWithName("Latin-Cyrillic"); // not found
+        // notes: the shorthand (Latin-Arab) was not chosen
+        Transliterator t = Transliterator.getInstance("Latin-az_IR");
+        Transliterator[] ts = t.getElements();
+        String ids = "";
+        for (int i = 0; i < ts.length; i++) {
+            ids += ts[i].getID() + "\n";
+            ids += ts[i].toRules(true) + "\n";
+            
+        }
+        throw new IllegalArgumentException(t.getID() + " ID "+ ids+" and output:" + t.transliterate("a"));
+    }
+     */
+
+    // @Test
+    // public void TestFallbackNiels() {
+    //     Transliterator.unregister("");
+    //     Transliterator.unregister("");
+
+    //     // registerWithName("Latin-Jpan");
+    //     registerWithName("Latn-Hrkt");
+    //     registerWithName("Latn-Hira");
+    //     registerWithName("Latn-Kata"); // not found
+    //     Transliterator t = Transliterator.getInstance("Latn-Jpan");
+    //     Transliterator[] ts = t.getElements();
+    //     String ids = "";
+    //     for (int i = 0; i < ts.length; i++) {
+    //         ids += ts[i].getID() + "\n";
+    //         ids += ts[i].toRules(true) + "\n";
+            
+    //     }
+    //     throw new IllegalArgumentException(t.getID() + " ID "+ ids+" and output:" + t.transliterate("a"));
+    // }
+
+    @Test
+    public void TestFallbackNiels() {
+        registerWithName("Any-Null");
+        Transliterator t = Transliterator.getInstance("Devanagari-Latin ; (Remove)");
+        Transliterator[] ts = t.getElements();
+        String ids = "";
+        for (int i = 0; i < ts.length; i++) {
+            ids += ts[i].getID() + "\n";
+            ids += ts[i].toRules(true) + "\n";
+            
+        }
+        throw new IllegalArgumentException(t.getID() + " ID "+ ids+" and output:" + t.transliterate("a"));
+    }
+
+    @Test
+    public void TestNielsFilterGroup() {
+        // Input "AxAxA" that due to filter [x] will get runs as A(x)A(x)A.
+        // Then a recursive call to check that the first conversion rule group has finished transliterating the whole input, not just the first run.
+
+        String mainRules = ":: [x] ; . > b ; :: Context-Sensitive ;";
+        String contextRules = "A { b } AxA > 'called with partial transliteration' ; A { b } AbA > 'called with complete transliteration of first rule group';";
+
+
+        
+        Transliterator contextT = Transliterator.createFromRules("Context-Sensitive", contextRules, Transliterator.FORWARD);
+        Transliterator.registerInstance(contextT);
+        Transliterator mainT = Transliterator.createFromRules("foo", mainRules, Transliterator.FORWARD);
+        
+        String input = "AxAxA";
+        String output = mainT.transliterate(input);
+
+        throw new IllegalArgumentException("Result is: " + output);
+    }
+
+    @Test
+    public void TestNielsRecursion() {
+        // Input "AxAxA" that due to filter [x] will get runs as A(x)A(x)A.
+        // Then a recursive call to check that the first conversion rule group has finished transliterating the whole input, not just the first run.
+
+        String mainRules = ":: [x] ; . > b ; :: Context-Sensitive ;";
+        String contextRules = "nothing > nothing; :: Recursive-Translit ;";
+        String t2Rules = ":: Context-Sensitive;";
+
+
+        Transliterator firstAB = Transliterator.createFromRules("Recursive-Translit", "nothing > nothing ;", Transliterator.FORWARD);
+        Transliterator.registerInstance(firstAB);
+        Transliterator contextT = Transliterator.createFromRules("Context-Sensitive", contextRules, Transliterator.FORWARD);
+        Transliterator.registerInstance(contextT);
+        Transliterator t2 = Transliterator.createFromRules("Recursive-Translit", t2Rules, Transliterator.FORWARD);
+        Transliterator.registerInstance(t2);
+        Transliterator contextT2 = Transliterator.createFromRules("Context-Sensitive", contextRules, Transliterator.FORWARD);
+        Transliterator.registerInstance(contextT2);
+        Transliterator mainT = Transliterator.createFromRules("foo", mainRules, Transliterator.FORWARD);
+        
+        String input = "AxAxA";
+        String output = mainT.transliterate(input);
+
+        throw new IllegalArgumentException("Result is: " + output);
+    }
+
+    @Test
+    public void TestTuring() {
+
+
+        String rulesNiels = ":: [a] ; x { a > | @ b; x > MATCHED ;";
+        Transliterator niels = Transliterator.createFromRules("foo", rulesNiels, Transliterator.FORWARD);
+        String nielsInput = "xa";
+        String nielsOutput = niels.transliterate(nielsInput);
+        if (5*5 == 25 ) throw new IllegalArgumentException(nielsOutput);
+
+        // here is a turing machine
+        
+        String rulesEncode = "\n\n# Any-TMEncoding ;\n# Encodes input code points into the turing machine tape.\n\n$blank = '0' ;\n\n$c = [^$] ;\n\n# [$] { ($c) > '(SYM_BEGIN,state)' | $1 ;\n\n# first input zero is in the begin state\n[$] { ($c) > '(' $1 ',' currA ')' ;\n\n($c) > '(' $1 ',' state ')' ;\n\n\n";
+        String rulesDecode = "\n\n# TMEncoding-Any ;\n# Decodes the turing machine tape into raw numbers.\n\n$c = [^$] ;\n$anyState = [a-zA-Z]+;\n\n'(' ($c) ',' $anyState ')' > $1 ;\n\n\n";
+        String rulesExtend = "\n# TMEncoding-TMEncoding/ExtendTape\n\n$c = [^$];\n\n$empty_sym = 0 ;\n\n[$] { ( '(' $c ',' curr [a-zA-Z]+ ')' ) > | '(' $empty_sym ',' state ')' $1 ;\n( '(' $c ',' curr [a-zA-Z]+ ')' ) } [$] > $1 '(' $empty_sym ',' state ')' ;\n\n\n";
+        String rulesOneStep = "\n# TMEncoding-TMEncoding/OneStep\n\n:: TMEncoding-TMEncoding/ExtendTape ;\n\n$any = [01] ;\n$anyState = [a-zA-Z]+;\n\n# turing machine steps described as:\n# input,state => write,move_dir,new_state\n\n# 0,A => 1,R,B\n'(' 0 ',' currA ')' '(' ($any) ',' $anyState ')' > '(' 1 ',' x ')' '(' $1 ',' currB ')' ;\n\n# 1,A => 1,L,C\n'(' ($any) ',' $anyState ')' '(' 1 ',' currA ')' > '(' $1 ',' currC ')' '(' 1 ',' x ')' ;\n\n# 0,B => 1,L,A\n'(' ($any) ',' $anyState ')' '(' 0 ',' currB ')' > '(' $1 ',' currA ')' '(' 1 ',' x ')' ;\n\n# 1,B => 1,R,B\n'(' 1 ',' currB ')' '(' ($any) ',' $anyState ')' > '(' 1 ',' x ')' '(' $1 ',' currB ')' ;\n\n# 0,C => 1,L,B\n'(' ($any) ',' $anyState ')' '(' 0 ',' currC ')' > '(' $1 ',' currB ')' '(' 1 ',' x ')' ;\n\n# 1,C => 1,R,HALT\n'(' 1 ',' currC ')' '(' ($any) ',' $anyState ')' > '(' 1 ',' x ')' '(' $1 ',' HALT ')' ;\n\n";
+        String rulesTM = "\n# Any-Any/TM ;\n\n:: Any-TMEncoding ;\n\n$any = [01] ;\n$anyState = [a-zA-Z]+;\n\n# stop if halt exists\n[$] { ([^H$]* HALT [^$]*) } [$] > $1 ;\n\n# simulate a step\n[$] { ([^$]+) } [$] > | &TMEncoding-TMEncoding/OneStep($1) ;\n\n:: TMEncoding-Any;\n\n";
+        
+        
+        Transliterator encode = Transliterator.createFromRules("Any-TMEncoding", rulesEncode, Transliterator.FORWARD);
+        Transliterator decode = Transliterator.createFromRules("TMEncoding-Any", rulesDecode, Transliterator.FORWARD);
+        Transliterator extend = Transliterator.createFromRules("TMEncoding-TMEncoding/ExtendTape", rulesExtend, Transliterator.FORWARD);
+        
+        Transliterator.registerInstance(encode);
+        Transliterator.registerInstance(decode);
+        Transliterator.registerInstance(extend);
+        
+        Transliterator oneStep = Transliterator.createFromRules("TMEncoding-TMEncoding/OneStep", rulesOneStep, Transliterator.FORWARD);
+        
+        Transliterator.registerInstance(oneStep);
+        
+        Transliterator tm = Transliterator.createFromRules("Any-Any/TM", rulesTM, Transliterator.FORWARD);
+        
+        
+        
+        
+        
+
+        String input = "0";
+        String output = tm.transliterate(input);
+
+        throw new IllegalArgumentException("Result is: " + output);
+
+
+        // here is rule 110 :
+
+        // String rulesEncode = "\n# Binary-ENCODE\n# It encodes binary input (0 and 1) into a string of pairs, one pair for each character.\n# At the end, it inserts the special character '%' that signifies the end.\n\n$any = [01] ;\n\n[$] { ([^$]) > StateRun | $1 ;\n\n# backing up one char to make sure we can inser the end marker\n($any) > '(' $1 ',' 0 | ')' ;\n')' } [$] > ')' '%' ;\n\n";
+        // String rulesDecode = "\n# ENCODE-Binary\n# It decodes pairs back to binary (0 and 1) and removes the special marker '%'.\n\n$any = [01] ;\n# previous state was 1\n$prev1 = '(' 1 ',' $any ')' ;\n# previous state was 0\n$prev0 = '(' 0 ',' $any ')' ;\n\n$prev1 > 1 ;\n$prev0 > 0 ;\n'%' > ;\n\n";
+        // String rulesOneStep = "\n# ENCODE-ENCODE/OneStep\n# It does one iteration of the rule 110 cellular automaton,\n# given the input is encoded as done in Binary-ENCODE.\n# In this step, the next state will be stored in the second element of each pair.\n\n### VARIABLE DEFINITIONS ###\n$any = [01] ;\n# previous state was 1\n$prev1 = '(' 1 ',' $any ')' ;\n# previous state was 0\n$prev0 = '(' 0 ',' $any ')' ;\n############################\n\n####################### 00* #######################\n# 000 => 0, $ special case\n$prev0 { $prev0 } [$] > '(0,0)' ;\n\n# 000 => 0, ^ special case (double)\n# NOT DOING THIS BECAUSE ADDING A ZERO IS WORTHLESS: # ^ { ($prev0) > '(0,0)' | $1 ;\n# 001 => 1, ^ special case (double)\n[$] { ($prev1) > '(0,1)' | $1 ;\n\n# 000 => 0, ^ special case\n[$] { $prev0 } $prev0 > '(0,0)' ;\n# 001 => 1, ^ special case\n[$] { $prev0 } $prev1 > '(0,1)' ;\n# 000 => 0\n$prev0 { $prev0 } $prev0 > '(0,0)' ;\n# 001 => 1\n$prev0 { $prev0 } $prev1 > '(0,1)' ;\n###################################################\n\n####################### 01* #######################\n# 010 => 1, $ special case\n$prev0 { $prev1 } [$] > '(1,1)' ;\n# 011 => 1, ^ special case\n[$] { $prev1 } $prev1 > '(1,1)' ;\n# 010 => 1, ^ special case\n[$] { $prev1 } $prev0 > '(1,1)' ;\n# TODO: might be able to optimize these special cases down into just `^ $prev0?` (i.e., an optional)\n# 011 => 1\n$prev0 { $prev1 } $prev1 > '(1,1)' ;\n# 010 => 1\n$prev0 { $prev1 } $prev0 > '(1,1)' ;\n###################################################\n\n####################### 10* #######################\n# 100 => 0, $ special case\n$prev1 { $prev0 } [$] > '(0,0)' ;\n# 100 => 0\n$prev1 { $prev0 } $prev0 > '(0,0)' ;\n# 101 => 1\n$prev1 { $prev0 } $prev1 > '(0,1)' ;\n###################################################\n\n####################### 11* #######################\n# 110 => 1, $ special case\n$prev1 { $prev1 } [$] > '(1,1)' ;\n# 110 => 1\n$prev1 { $prev1 } $prev0 > '(1,1)' ;\n# 111 => 0\n$prev1 { $prev1 } $prev1 > '(1,0)' ;\n###################################################\n\n";
+        // String rulesApplyUpdate = "\n# ENCODE-ENCODE/ApplyUpdate\n# It moves the current state encoded as (prev_state, next_state) into (next_state, 0),\n\n$any = [01] ;\n'(' $any ',' ($any) ')' > '(' $1 ',' 0 ')' ;\n\n";
+        // String rulesRule110 = "\n# Binary-Binary/Rule110\n# This transform applies rule 110 to the input.\n# Currently it stops after a hardcoded width.\n\n# encode\n:: Binary-ENCODE ;\n\n$pair = '(' [01] ',' [01] ')' ;\n\n# stop after pattern is 20 wide\nStateRun ($pair$pair$pair$pair$pair$pair$pair$pair$pair$pair$pair$pair$pair$pair$pair$pair$pair$pair$pair$pair '%') > $1 ;\n\n# run one step\n[$] { StateRun ([^%$]*) } '%' [$] > | StateUpdate &ENCODE-ENCODE/OneStep($1) ;\n\n# reset to the beginning\n# [^]* { '%' > | @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ '%' ;\n\n# move (prev_state, next_state) into (next_state, 0)\n[$] { StateUpdate ([^%$]*) } '%' [$] > | StateRun &ENCODE-ENCODE/ApplyUpdate($1) ;\n\n# reset to the beginning\n# [^]* { '%' > | @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ '%' ;\n\n# decode\n\n:: ENCODE-Binary ;\n\n";
+        
+        
+        
+        // Transliterator encode = Transliterator.createFromRules("Binary-ENCODE", rulesEncode, Transliterator.FORWARD);
+        // Transliterator decode = Transliterator.createFromRules("ENCODE-Binary", rulesDecode, Transliterator.FORWARD);
+        // Transliterator oneStep = Transliterator.createFromRules("ENCODE-ENCODE/OneStep", rulesOneStep, Transliterator.FORWARD);
+        // Transliterator applyUpdate = Transliterator.createFromRules("ENCODE-ENCODE/ApplyUpdate", rulesApplyUpdate, Transliterator.FORWARD);
+        
+        // Transliterator.registerInstance(encode);
+        // Transliterator.registerInstance(decode);
+        // Transliterator.registerInstance(oneStep);
+        // Transliterator.registerInstance(applyUpdate);
+
+        // Transliterator rule110 = Transliterator.createFromRules("Binary-Binary/Rule110", rulesRule110, Transliterator.FORWARD);
+        // Transliterator.registerInstance(rule110);
+        // Transliterator myTranslit = Transliterator.getInstance("Binary-Binary/Rule110");
+        // String input = "110";
+        // String output = myTranslit.transliterate(input);
+
+        // throw new IllegalArgumentException("Result is: " + output);
+
+        //expect(myCustomDeAsciiTransliterator, input, output);
     }
 
     /**

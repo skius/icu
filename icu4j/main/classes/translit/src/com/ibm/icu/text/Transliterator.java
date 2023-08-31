@@ -736,7 +736,7 @@ public abstract class Transliterator implements StringTransform  {
      *
      * <<This generates a lot of output.>>
      */
-    static final boolean DEBUG = false;
+    static final boolean DEBUG = true;
 
     /**
      * Default constructor.

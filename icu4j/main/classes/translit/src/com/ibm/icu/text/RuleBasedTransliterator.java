@@ -104,9 +104,10 @@ public class RuleBasedTransliterator extends Transliterator {
         synchronized(data)  {
             int loopCount = 0;
             int loopLimit = (index.limit - index.start) << 4;
-            if (loopLimit < 0) {
+            // if (loopLimit < 0) {
                 loopLimit = 0x7FFFFFFF;
-            }
+                loopLimit = 0x2000;
+            // }
 
             while (index.start < index.limit &&
                     loopCount <= loopLimit &&

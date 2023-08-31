@@ -670,6 +670,8 @@ class TransliteratorParser {
                             varStart = buf.length();
                             parser.appendVariableDef(name, buf);
                             varLimit = buf.length();
+                            // if (pos > 66 && name.equals("allo"))
+                            // throw new IllegalArgumentException(buf.toString());
                         }
                     }
                     break;
@@ -739,6 +741,7 @@ class TransliteratorParser {
                         m = new Quantifier(m, min, max);
                         buf.setLength(qstart);
                         buf.append(parser.generateStandInFor(m));
+                        // throw new IllegalArgumentException(buf.toString());
                     }
                     break;
 
